@@ -1,6 +1,6 @@
 #-------------------------------------------
 # Author: Grant Morfitt
-# Description: Sorts parsed data into dictionary of dataframes for ease of maniupulation
+# Description: Sorts parsed data into dictionary of dataframes for ease of manipulation
 # Output : fixedParsedData is dict that contains each file, and then a dictionary of each run which contains dataframes of selected variables
 
 import scipy.io
