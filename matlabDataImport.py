@@ -42,15 +42,6 @@ EX:
                             currentVal = data[item][currentVar] 
                             currentVal = np.concatenate(np.concatenate(np.concatenate(currentVal, axis=0)))
                             runData[currentVar] = currentVal #Save to dictionary the current variable and it's value
-                            
-                    #-----------Testing-----------------------------------------
-                    
-                    # timeValue = (data[item]['G97S_DSP_YTSIMTM_F4_1_'])    #Structure['parent1']['variable1'] / Pulls value into array
-                    # groundSpeed = (data[item]['G04_EOM_GSPEED_F8_1_'])    #Pulls current groundspeed variable for current scenario
-                    # timeValue = np.concatenate(np.concatenate(np.concatenate(timeValue, axis=0))) #Converts to array
-                    # groundSpeed = np.concatenate(np.concatenate(np.concatenate(groundSpeed, axis=0))) #Converts to array
-                    # runData = {"Time": timeValue, "Ground Speed": groundSpeed}  #Creates a dictionary for this scenario/run
-                    #----------------------------------------------------------------------------------------
                             simplifiedSingleData[item] = pd.DataFrame(runData) #Adds scenario data into dataframe
             
         fixedParsedData[file] = simplifiedSingleData #Adds single file data to larger dictionary 
