@@ -9,23 +9,19 @@ import numpy as np
 import pandas as pd
 import os
 
-def ImportSimData(dataDir, aircraftType, arrayOfVariables):
+def ImportSimData(dataDir, arrayOfVariables):
     
-"""
-dataDir must refer to folder for ONE(1) aircraft data
-aircraftType must be string. A330, A737, A747
-arrayOfVariables contains an array of disired variables. If incorrect it simply won't transfer to the final output
-output: fixedParsedData
-EX:
-    A747Var = {"VVT_1_", "HGSPD_1_"}
-
-    data = ImportSimData("SimFiles/737/","737", A747Var)
-
-"""
+    """
+    dataDir must refer to folder for ONE(1) aircraft data
+    arrayOfVariables contains an array of disired variables.
+    output: fixedParsedData
+    EX:
+        A747Var = {"VVT_1_", "HGSPD_1_"}
+        data = ImportSimData("SimFiles/737/",A747Var)
+    """
     #----------Import Matlab Files-------------
     matlabFiles = []
     fixedParsedData = {"File": []}
-    
     for file in os.listdir( dataDir ) : #Loop through files in directory
         matlabFiles.append( scipy.io.loadmat( dataDir+file ) )  #Import matlab file
         
@@ -50,3 +46,6 @@ EX:
     return fixedParsedData;
 
 
+A747Var = {"pilot_flying", "pilot_monitoring",}
+
+data = ImportSimData("SimFiles/737/", A747Var)
