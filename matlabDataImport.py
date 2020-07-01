@@ -34,7 +34,7 @@ def ImportSimData(dataDir, arrayOfVariables):
                     runData = {}    #temporary storage for current variable value
                                         
                     for currentVar in arrayOfVariables: #Sort through array of variables
-                         if (item != "__header__") and (item != "__version__") and (item != "__globals__"): #No headers
+                         if (item.startswith('__') != True) and (item.startswith('__version__') != True) and (item.startswith('__globals__') != True): #No headers
                             currentVal = data[item][currentVar] 
                             currentVal = np.concatenate(np.concatenate(np.concatenate(currentVal, axis=0)))
                             runData[currentVar] = currentVal #Save to dictionary the current variable and it's value
