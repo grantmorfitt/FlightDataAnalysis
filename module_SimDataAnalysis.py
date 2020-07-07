@@ -13,6 +13,7 @@ def ImportSimData(dataDir, arrayOfVariables):
     
     """
      DESCRIPTION: Sorts parsed data into dictionary of dataframes for ease of manipulation
+     INPUT: Datadir of folder, array containing disered variables
      OUTPUT: fixedParsedData is dict that contains each file, and then a dictionary of each run which contains dataframes of selected variables
      INFO:
             dataDir must refer to folder for ONE(1) aircraft data
@@ -51,6 +52,12 @@ def ImportSimData(dataDir, arrayOfVariables):
 
 
 def EnergyMetric(height, velocity):
+    """
+    DESCRIPTION: Calculates proposed energy metric for single time sample
+     INPUT: Current height of aircraft, current velocity of aircraft
+     OUTPUT: Float energy
+         
+    """
     energy = 0
     CONST_GRAVITY = 32.17405
     
@@ -58,6 +65,24 @@ def EnergyMetric(height, velocity):
     energy = height + velocitySquared/(2*CONST_GRAVITY)
     
     return energy
+
+def IsStable(vref,airspeed,gsDeviation, locDeviation):
+    #STILL NEED TO INCLUDE DESCENT RATE
+    isStable = None 
+    
+    #will have to encorporate desentRate somehow. Function of altitude?
+    if abs(airspeed-vref) < 10 and abs(gsDeviation) < 1 and abs(locDeviation)<1 :
+        isStable = True    
+    
+    else:
+        isStable = False
+    
+    #Airspeed: +0-10 vref
+    #Glideslope: 1 dot
+    #Localizer : 1 dot
+    #ROD       : TAWS Activiation 
+      
+    return isStable
 
     
      
