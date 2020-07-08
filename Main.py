@@ -5,17 +5,16 @@
 
 """
 
-from module_SimDataAnalysis import ImportSimData,EnergyMetric,IsStable
+from module_SimDataAnalysis import ImportSimData,EnergyMetric,IsStable,CalculateDescentFPM
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import IsolationForest
 
-Var = {"G97S_DSP_YTSIMTM_F4_1_","G04_EOM_ALT_AGL_F8_1_", "G04_EOM_CAS_F8_1_", "G34_NAV_GS_DEVDDM_F4_1_","L34_NAV_LOC_DEVDDM_F4_1_","G04_EOM_VZ_F8_1_"}
+Var = {"G97S_DSP_YTSIMTM_F4_1_","G04_EOM_ALT_AGL_F8_1_", "G04_EOM_CAS_F8_1_", "G34_NAV_GS_DEVDDM_F4_1_","L34_NAV_LOC_DEVDDM_F4_1_", "G04_EOM_THETA_DEG_F8_1_"}
 #time, altitude, CAS
 
 # GS DEV: G34_NAV_GS_DEVDDM_F4_1_ 
 # LOC DEV: L34_NAV_LOC_DEVDDM_F4_1_ 
-# "G04_EOM_VZ_F8_1_"
 data = ImportSimData("SimFiles/A330/",Var)
 energy = {}
 stability = {}
@@ -26,7 +25,7 @@ height = data['sim_data_pilot111.mat']['data_scen01_rep1']['G04_EOM_ALT_AGL_F8_1
 velocity = data['sim_data_pilot111.mat']['data_scen01_rep1']['G04_EOM_CAS_F8_1_']
 gsDev = data['sim_data_pilot111.mat']['data_scen01_rep1']['G34_NAV_GS_DEVDDM_F4_1_']
 locDev = data['sim_data_pilot111.mat']['data_scen01_rep1']['L34_NAV_LOC_DEVDDM_F4_1_']
-descentFPM = data['sim_data_pilot111.mat']['data_scen01_rep1']['G04_EOM_VZ_F8_1_']
+pitchAngle = data['sim_data_pilot111.mat']['data_scen01_rep1']['G04_EOM_THETA_DEG_F8_1_']
 
 for currentSample in range(len(time)): 
     energy[currentSample] = EnergyMetric(height[currentSample],velocity[currentSample]) #Calculate energy metric
@@ -40,19 +39,21 @@ df = pd.concat([energy.rename("energy"), slope], axis = 1) #Adds both to datafra
 
 #vref, altitude, airspeed, pitchAngle, gsDeviation, locDeviation
 for currentSample in range(len(time)): #This calculates stability using IsStable function
-    stability[currentSample],fpm= IsStable(75,height[currentSample],velocity[currentSample],descentFPM[currentSample],gsDev[currentSample],locDev[currentSample])
+    stability[currentSample],fpm,tsfpm= IsStable(75,height[currentSample],velocity[currentSample],pitchAngle[currentSample],gsDev[currentSample],locDev[currentSample])
     actualFPM[currentSample] = fpm
+    TAWSFpm[currentSample] = tsfpm
     
-stability = pd.Series(stability) #formats everything into dataframe
+stability = pd.Series(stability) #formats everything into dataframe df
 stability = stability.to_frame()
+
 actualFPM = pd.Series(actualFPM)
 actualFPM = actualFPM.to_frame()
+
 height = height.to_frame()
 velocity = velocity.to_frame()
 gsDev = gsDev.to_frame()
 locDev = locDev.to_frame()
-
-df = pd.concat([stability.rename(columns = {0 : "stability"}),df],axis = 1) #Put values into dataframe
+df = pd.concat([stability.rename(columns = {0 : "stability"}),df],axis = 1)
 df = pd.concat([actualFPM.rename(columns = {0 : "FPM"}),df],axis = 1)
 df = pd.concat([height,velocity,gsDev,locDev,df],axis = 1)
 
