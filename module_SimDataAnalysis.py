@@ -11,7 +11,6 @@ import os
 import math
 
 def ImportSimData(dataDir, arrayOfVariables):
-    
     """
      DESCRIPTION: Sorts parsed data into dictionary of dataframes for ease of manipulation
      INPUT: Datadir of folder, array containing disered variables
@@ -67,34 +66,30 @@ def EnergyMetric(height, velocity):
     
     return energy
 
-def CalculateDescentFPM(airspeed,pitchAngle):
-    """
-    DESCRIPTION: Calculates aircraft FPM based on airspeed and pitchangle
-    INPUT: Airspeed, pitch angle in degrees
-    OUTPUT: Feet per minute of aircraft descent
-    """
-    FPM = 0
-    FPM = airspeed *(1/60) * 6080 * math.tan(pitchAngle)
-    return FPM
-
-def IsStable(vref, altitude, airspeed,pitchAngle, gsDeviation, locDeviation):
-    isStable = None  #initialize variable
-
-    #TAWS Activates if Altitude<Following equation:
-    #Radio Altitude (FT) = -572 (FT) - 0.6035 * Altitude Rate (FPM) 
-    #FPM = (RadioAlt + 572)/-0.6035 (APPROX.TAKEN FROM HONEYWELL PAPER)
+# def CalculateDescentFPM(airspeed,pitchAngle):
+#     """
+#     DESCRIPTION: Calculates aircraft FPM based on airspeed and pitchangle
+#     INPUT: Airspeed, pitch angle in degrees
+#     OUTPUT: Feet per minute of aircraft descent
     
+#     """
+#     FPM = 0
+#     FPM = airspeed *(1/60) * 6080 * math.tan(pitchAngle)
+#     return FPM
+
+def IsStable(vref, altitude, airspeed,descentFPM,gsDeviation, locDeviation):
     #Airspeed: +0-10 vref
     #Glideslope: 1 dot
     #Localizer : 1 dot
     #ROD       : TAWS Activiation 
     
-    actualFPM = CalculateDescentFPM(airspeed,pitchAngle)
-    TAWSFpm = (altitude + 572)/-0.6035
+    # TAWSFpm = (altitude + 572)/-0.6035
+    #Peter may have already coded the TAWSCriteria. May be able to take that. Waiting to hear back.
+    actualFPM = descentFPM #TEMPORARY until hearing back from peter
+    isStable = None  #initialize variable
     
     
-    
-    if abs(airspeed-vref) <= 10 and abs(gsDeviation) <= 1 and abs(locDeviation) <= 1 and (actualFPM>=TAWSFpm):
+    if abs(airspeed-vref) <= 10 and abs(gsDeviation) <= 1 and abs(locDeviation) <= 1: #and (actualFPM>=TAWSFpm):
         isStable = True    
     
     else:
@@ -102,7 +97,7 @@ def IsStable(vref, altitude, airspeed,pitchAngle, gsDeviation, locDeviation):
     
 
       
-    return isStable,actualFPM,TAWSFpm
+    return isStable,actualFPM#,TAWSFpm
 
     
      
