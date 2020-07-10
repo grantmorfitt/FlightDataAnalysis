@@ -11,7 +11,6 @@ import os
 import math
 
 def ImportSimData(dataDir, arrayOfVariables):
-    
     """
      DESCRIPTION: Sorts parsed data into dictionary of dataframes for ease of manipulation
      INPUT: Datadir of folder, array containing disered variables
@@ -54,7 +53,7 @@ def ImportSimData(dataDir, arrayOfVariables):
 
 def EnergyMetric(height, velocity):
     """
-    DESCRIPTION: Calculates proposed energy metric for single time sample
+     DESCRIPTION: Calculates proposed energy metric for single time sample
      INPUT: Current height of aircraft, current velocity of aircraft
      OUTPUT: Float energy
          
@@ -67,42 +66,59 @@ def EnergyMetric(height, velocity):
     
     return energy
 
-def CalculateDescentFPM(airspeed,pitchAngle):
-    """
-    DESCRIPTION: Calculates aircraft FPM based on airspeed and pitchangle
-    INPUT: Airspeed, pitch angle in degrees
-    OUTPUT: Feet per minute of aircraft descent
-    """
-    FPM = 0
-    FPM = airspeed *(1/60) * 6080 * math.tan(pitchAngle)
-    return FPM
+# def CalculateDescentFPM(airspeed,pitchAngle):
+#     """
+#     DESCRIPTION: Calculates aircraft FPM based on airspeed and pitchangle
+#     INPUT: Airspeed, pitch angle in degrees
+#     OUTPUT: Feet per minute of aircraft descent
+    
+#     """
+#     FPM = 0
+#     FPM = airspeed *(1/60) * 6080 * math.tan(pitchAngle)
+#     return FPM
 
-def IsStable(vref, altitude, airspeed,pitchAngle, gsDeviation, locDeviation):
+def IsStable(vref, radioAltitude, heightAGL, airspeed,descentFPM,gsDeviation,locDeviation):
+    """
+    DESCRIPTION: Calculates stability at time sample given input parameters
+    INPUT: Vref for aircraft, radio altitude, height above ground, current airspeed(CAS), descent feet per minute, glideslope deviaiotn and localizer deviation
+    OUTPUT: T/F of aircraft stability based on the metrics in the info section
+    INFO: 
+              #Airspeed: +0-10 vref
+              #Glideslope: 1 dot
+              #Localizer : 1 dot
+              #ROD       : TAWS not activated
+    """
+              
+    TAWS = None
     isStable = None  #initialize variable
 
-    #TAWS Activates if Altitude<Following equation:
-    #Radio Altitude (FT) = -572 (FT) - 0.6035 * Altitude Rate (FPM) 
-    #FPM = (RadioAlt + 572)/-0.6035 (APPROX.TAKEN FROM HONEYWELL PAPER)
+    zdev = gsDeviation * 2 / .0175
+    descentFPM *= -1
+
+    if (zdev < 0):                  # zdev_calc(zdev_calc<0) = 0; %Set to zero where less than zero
+        zdev = 0
+    radioAltitude /= 100
+                                    #%Set to 1 greater than 1, can't bias greater than 100%
+    if (radioAltitude > 1): 
+        radioAltitude = 1
+
+    bias = -zdev / 2 * 300 * radioAltitude       # bias = -zdev_calc/2.*300.*zr_calc;
+    yy_dtc = -572 - (0.6035 * (-descentFPM * 60)) + bias       # yy_dtc = -572-(0.6035.*(-rod*60))+ bias;
     
-    #Airspeed: +0-10 vref
-    #Glideslope: 1 dot
-    #Localizer : 1 dot
-    #ROD       : TAWS Activiation 
-    
-    actualFPM = CalculateDescentFPM(airspeed,pitchAngle)
-    TAWSFpm = (altitude + 572)/-0.6035
+
+    if (heightAGL < yy_dtc):    #RADIO ALTITUDE ONLY USED TO CALCULATE BIAS
+        TAWS = 1
+    else: TAWS = 0;
     
     
     
-    if abs(airspeed-vref) <= 10 and abs(gsDeviation) <= 1 and abs(locDeviation) <= 1 and (actualFPM>=TAWSFpm):
+    if abs(airspeed-vref) <= 10 and abs(gsDeviation) <= 1 and abs(locDeviation) <= 1 and TAWS != 1:
         isStable = True    
     
     else:
         isStable = False
     
 
-      
-    return isStable,actualFPM,TAWSFpm
-
+    return isStable, yy_dtc,TAWS
     
      

@@ -5,30 +5,31 @@
 
 """
 
-from module_SimDataAnalysis import ImportSimData,EnergyMetric,IsStable,CalculateDescentFPM
+from module_SimDataAnalysis import ImportSimData,EnergyMetric,IsStable
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import IsolationForest
 
-Var = {"G97S_DSP_YTSIMTM_F4_1_","G04_EOM_ALT_AGL_F8_1_", "G04_EOM_CAS_F8_1_", "G34_NAV_GS_DEVDDM_F4_1_","L34_NAV_LOC_DEVDDM_F4_1_", "G04_EOM_THETA_DEG_F8_1_"}
-#time, altitude, CAS
+Var = {"G97S_DSP_YTSIMTM_F4_1_","G04_EOM_ALT_AGL_F8_1_", "G04_EOM_CAS_F8_1_", "G34_NAV_GS_DEVDDM_F4_1_","L34_NAV_LOC_DEVDDM_F4_1_","G04_EOM_VZ_F8_1_","O34A_RALT_ALT_F4_1_"}
 
-# GS DEV: G34_NAV_GS_DEVDDM_F4_1_ 
-# LOC DEV: L34_NAV_LOC_DEVDDM_F4_1_ 
-data = ImportSimData("SimFiles/A330/",Var)
 energy = {}
 stability = {}
-actualFPM = {}
-TAWSFpm = {}
+TAWS_FPM= {}
+TAWS_act = {}
+TAWS_measured = {}
+
+data = ImportSimData("SimFiles/A330/",Var)
+
 time = data['sim_data_pilot111.mat']['data_scen01_rep1']['G97S_DSP_YTSIMTM_F4_1_']
-height = data['sim_data_pilot111.mat']['data_scen01_rep1']['G04_EOM_ALT_AGL_F8_1_']
+radioAltitude = data['sim_data_pilot111.mat']['data_scen01_rep1']['O34A_RALT_ALT_F4_1_']
 velocity = data['sim_data_pilot111.mat']['data_scen01_rep1']['G04_EOM_CAS_F8_1_']
 gsDev = data['sim_data_pilot111.mat']['data_scen01_rep1']['G34_NAV_GS_DEVDDM_F4_1_']
 locDev = data['sim_data_pilot111.mat']['data_scen01_rep1']['L34_NAV_LOC_DEVDDM_F4_1_']
-pitchAngle = data['sim_data_pilot111.mat']['data_scen01_rep1']['G04_EOM_THETA_DEG_F8_1_']
+descentFPM = data['sim_data_pilot111.mat']['data_scen01_rep1']['G04_EOM_VZ_F8_1_']
+altitudeAGL = data['sim_data_pilot111.mat']['data_scen01_rep1']['G04_EOM_ALT_AGL_F8_1_']
 
 for currentSample in range(len(time)): 
-    energy[currentSample] = EnergyMetric(height[currentSample],velocity[currentSample]) #Calculate energy metric
+    energy[currentSample] = EnergyMetric(altitudeAGL[currentSample],velocity[currentSample]) #Calculate energy metric
     
 energy = pd.Series(energy)
 slope = pd.Series(np.gradient(energy.values), energy.index, name='energy gradient')#calulate slope
@@ -37,25 +38,34 @@ df = pd.concat([energy.rename("energy"), slope], axis = 1) #Adds both to datafra
 
 
 
-#vref, altitude, airspeed, pitchAngle, gsDeviation, locDeviation
+#vref, radioAltitude, heightAGL, airspeed,descentFPM,gsDeviation,locDeviation
 for currentSample in range(len(time)): #This calculates stability using IsStable function
-    stability[currentSample],fpm,tsfpm= IsStable(75,height[currentSample],velocity[currentSample],pitchAngle[currentSample],gsDev[currentSample],locDev[currentSample])
-    actualFPM[currentSample] = fpm
-    TAWSFpm[currentSample] = tsfpm
-    
-stability = pd.Series(stability) #formats everything into dataframe df
+    stability[currentSample],TAWS_calc,TAWS_measured = IsStable(75,radioAltitude[currentSample],altitudeAGL[currentSample],velocity[currentSample],descentFPM[currentSample],gsDev[currentSample],locDev[currentSample])
+    TAWS_FPM[currentSample] = TAWS_calc
+    TAWS_act[currentSample] = TAWS_measured
+
+#Formatting the datatables for input into larger dataframe    
+stability = pd.Series(stability)
 stability = stability.to_frame()
-
-actualFPM = pd.Series(actualFPM)
-actualFPM = actualFPM.to_frame()
-
-height = height.to_frame()
+stability = stability.rename(columns = {0 : "stability"})
+TAWS_FPM = pd.Series(TAWS_FPM)
+TAWS_FPM = TAWS_FPM.to_frame()
+TAWS_FPM = TAWS_FPM.rename(columns = {0 : "TAWS Activiation Altitude"})
+TAWS_act = pd.Series(TAWS_act)
+TAWS_act = TAWS_act.to_frame()
+TAWS_act = TAWS_act.rename(columns = {0 : "TAWS Activated"})
+descentFPM = descentFPM.to_frame()
+descentFPM = descentFPM.rename(columns = {0 : "Actual FPM"})
+altitudeAGL = altitudeAGL.to_frame()
+altitudeAGL = altitudeAGL.rename(columns = {0 : "Altitude AGL"})
 velocity = velocity.to_frame()
 gsDev = gsDev.to_frame()
 locDev = locDev.to_frame()
-df = pd.concat([stability.rename(columns = {0 : "stability"}),df],axis = 1)
-df = pd.concat([actualFPM.rename(columns = {0 : "FPM"}),df],axis = 1)
-df = pd.concat([height,velocity,gsDev,locDev,df],axis = 1)
+
+descentFPM = descentFPM.rename(columns = {0 : "Descent FPM"})
+
+
+df = pd.concat([descentFPM,TAWS_FPM,TAWS_act,altitudeAGL,velocity,gsDev,locDev,stability,df],axis = 1)
 
 
 
