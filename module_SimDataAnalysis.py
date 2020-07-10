@@ -8,11 +8,12 @@ import scipy.io
 import numpy as np
 import pandas as pd
 import os
+import math
 
 def ImportSimData(dataDir, arrayOfVariables):
-    
     """
      DESCRIPTION: Sorts parsed data into dictionary of dataframes for ease of manipulation
+     INPUT: Datadir of folder, array containing disered variables
      OUTPUT: fixedParsedData is dict that contains each file, and then a dictionary of each run which contains dataframes of selected variables
      INFO:
             dataDir must refer to folder for ONE(1) aircraft data
@@ -51,6 +52,12 @@ def ImportSimData(dataDir, arrayOfVariables):
 
 
 def EnergyMetric(height, velocity):
+    """
+     DESCRIPTION: Calculates proposed energy metric for single time sample
+     INPUT: Current height of aircraft, current velocity of aircraft
+     OUTPUT: Float energy
+         
+    """
     energy = 0
     CONST_GRAVITY = 32.17405
     
@@ -59,5 +66,59 @@ def EnergyMetric(height, velocity):
     
     return energy
 
+# def CalculateDescentFPM(airspeed,pitchAngle):
+#     """
+#     DESCRIPTION: Calculates aircraft FPM based on airspeed and pitchangle
+#     INPUT: Airspeed, pitch angle in degrees
+#     OUTPUT: Feet per minute of aircraft descent
+    
+#     """
+#     FPM = 0
+#     FPM = airspeed *(1/60) * 6080 * math.tan(pitchAngle)
+#     return FPM
+
+def IsStable(vref, radioAltitude, heightAGL, airspeed,descentFPM,gsDeviation,locDeviation):
+    """
+    DESCRIPTION: Calculates stability at time sample given input parameters
+    INPUT: Vref for aircraft, radio altitude, height above ground, current airspeed(CAS), descent feet per minute, glideslope deviaiotn and localizer deviation
+    OUTPUT: T/F of aircraft stability based on the metrics in the info section
+    INFO: 
+              #Airspeed: +0-10 vref
+              #Glideslope: 1 dot
+              #Localizer : 1 dot
+              #ROD       : TAWS not activated
+    """
+              
+    TAWS = None
+    isStable = None  #initialize variable
+
+    zdev = gsDeviation * 2 / .0175
+    descentFPM *= -1
+
+    if (zdev < 0):                  # zdev_calc(zdev_calc<0) = 0; %Set to zero where less than zero
+        zdev = 0
+    radioAltitude /= 100
+                                    #%Set to 1 greater than 1, can't bias greater than 100%
+    if (radioAltitude > 1): 
+        radioAltitude = 1
+
+    bias = -zdev / 2 * 300 * radioAltitude       # bias = -zdev_calc/2.*300.*zr_calc;
+    yy_dtc = -572 - (0.6035 * (-descentFPM * 60)) + bias       # yy_dtc = -572-(0.6035.*(-rod*60))+ bias;
+    
+
+    if (heightAGL < yy_dtc):    #RADIO ALTITUDE ONLY USED TO CALCULATE BIAS
+        TAWS = 1
+    else: TAWS = 0;
+    
+    
+    
+    if abs(airspeed-vref) <= 10 and abs(gsDeviation) <= 1 and abs(locDeviation) <= 1 and TAWS != 1:
+        isStable = True    
+    
+    else:
+        isStable = False
+    
+
+    return isStable, yy_dtc,TAWS
     
      
