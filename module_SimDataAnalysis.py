@@ -87,28 +87,53 @@ def IsStable(vref, radioAltitude, heightAGL, airspeed,descentFPM,gsDeviation,loc
               #Glideslope: 1 dot
               #Localizer : 1 dot
               #ROD       : TAWS not activated
+        ****WHEN ADDING NEW AIRCRAFT GS MUST BE TAKEN INTO CONSIDERATION****
     """
               
     TAWS = None
     isStable = None  #initialize variable
+    #zdev= data.G34_NAV_GS_DEVDDM_F4_1_.*2/0.175; % gs deviation, dot (0.175 DDM = 2 dot)
+    #zr = data.O34A_RALT_ALT_F4_1_ ;% radio altitude
+    #zt = data.G04_EOM_ALT_AGL_F8_1_; % height above ground
+    zdev = gsDeviation*2/0.175
+    
+    zr = radioAltitude
+    zt = heightAGL
+    rod = -descentFPM
+    zdev_calc = zdev;
+    
+    if zdev_calc <0:
+        zdev_calc = 0
+        
+    zr_calc = zr/100; 
+    if zr_calc > 1:
+        zr_calc = 1
+        
+    bias = -zdev_calc/2 *300 *zr_calc;
+    
+    yy_dtc = (-572-(0.6035*(-rod*60))+bias);
+    
+    if  zt<yy_dtc:
+        TAWS = 1;
+    else:
+        TAWS = 0;
+        
+    # zdev = gsDeviation * 2 / 0.175
+    # descentFPM *= -1
 
-    zdev = gsDeviation * 2 / .0175
-    descentFPM *= -1
+    # if (zdev < 0):                  # zdev_calc(zdev_calc<0) = 0; %Set to zero where less than zero
+    #     zdev = 0 
+    # radioAltitude /= 100                         #%Set to 1 greater than 1, can't bias greater than 100%
+    # if (radioAltitude > 1): 
+    #     radioAltitude = 1
 
-    if (zdev < 0):                  # zdev_calc(zdev_calc<0) = 0; %Set to zero where less than zero
-        zdev = 0
-    radioAltitude /= 100
-                                    #%Set to 1 greater than 1, can't bias greater than 100%
-    if (radioAltitude > 1): 
-        radioAltitude = 1
-
-    bias = -zdev / 2 * 300 * radioAltitude       # bias = -zdev_calc/2.*300.*zr_calc;
-    yy_dtc = -572 - (0.6035 * (-descentFPM * 60)) + bias       # yy_dtc = -572-(0.6035.*(-rod*60))+ bias;
+    # bias = -zdev / 2 * 300 * radioAltitude       # bias = -zdev_calc/2.*300.*zr_calc;
+    # yy_dtc = -572 - (0.6035 * (-descentFPM * 60)) + bias       # yy_dtc = -572-(0.6035.*(-rod*60))+ bias;
     
 
-    if (heightAGL < yy_dtc):    #RADIO ALTITUDE ONLY USED TO CALCULATE BIAS
-        TAWS = 1
-    else: TAWS = 0;
+    # if (heightAGL < yy_dtc):    #RADIO ALTITUDE ONLY USED TO CALCULATE BIAS
+    #     TAWS = 1
+    # else: TAWS = 0;
     
     
     
@@ -120,5 +145,38 @@ def IsStable(vref, radioAltitude, heightAGL, airspeed,descentFPM,gsDeviation,loc
     
 
     return isStable, yy_dtc,TAWS
-    
+    2
      
+
+def TestStable(radioAltitude, heightAGL, descentFPM, gsDeviation):
+              
+    TAWS = None
+    isStable = None  #initialize variable
+    #zdev= data.G34_NAV_GS_DEVDDM_F4_1_.*2/0.175; % gs deviation, dot (0.175 DDM = 2 dot)
+    #zr = data.O34A_RALT_ALT_F4_1_ ;% radio altitude
+    #zt = data.G04_EOM_ALT_AGL_F8_1_; % height above ground
+    zdev = gsDeviation*2/0.175
+    
+    zr = radioAltitude
+    zt = heightAGL
+    rod = -descentFPM
+    zdev_calc = zdev;
+    
+    if zdev_calc <0:
+        zdev_calc = 0
+        
+    zr_calc = zr/100; 
+    if zr_calc > 1:
+        zr_calc = 1
+        
+    bias = -zdev_calc/2 *300 *zr_calc;
+    
+    yy_dtc = (-572-(0.6035*(-rod*60))+bias)/1000;
+    
+    if  zt<yy_dtc:
+        TAWS = 1;
+    else:
+        TAWS = 0;
+        
+    return isStable, yy_dtc,TAWS,zdev_calc,bias
+ 
