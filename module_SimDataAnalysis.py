@@ -25,7 +25,7 @@ def ImportSimData(dataDir, arrayOfVariables):
     """
     #----------Import Matlab Files-------------
     matlabFiles = []
-    fixedParsedData = {"File": []}
+    fixedParsedData = {}
     for file in os.listdir( dataDir ) : #Loop through files in directory
         matlabFiles.append( scipy.io.loadmat( dataDir+file ) )  #Import matlab file
         
@@ -92,50 +92,26 @@ def IsStable(vref, radioAltitude, heightAGL, airspeed,descentFPM,gsDeviation,loc
               
     TAWS = None
     isStable = None  #initialize variable
-    #zdev= data.G34_NAV_GS_DEVDDM_F4_1_.*2/0.175; % gs deviation, dot (0.175 DDM = 2 dot)
-    #zr = data.O34A_RALT_ALT_F4_1_ ;% radio altitude
-    #zt = data.G04_EOM_ALT_AGL_F8_1_; % height above ground
-    zdev = gsDeviation*2/0.175
+    clearance = None
+    #FPM must be negative
+    #radioAtltude > 284 <2450 = upper Clearance
+    #radioAltitude < 284 > 10 lower Clearance ASSUMING FPM >1482
     
-    zr = radioAltitude
-    zt = heightAGL
-    rod = -descentFPM
-    zdev_calc = zdev;
+    TAWS = 0 #our default will be zero, the if statement will indicate a 1 if activated
+    isStable = None  #initialize variable
     
-    if zdev_calc <0:
-        zdev_calc = 0
-        
-    zr_calc = zr/100; 
-    if zr_calc > 1:
-        zr_calc = 1
-        
-    bias = -zdev_calc/2 *300 *zr_calc;
+    upperClearance = (-0.575*descentFPM) - 1645.235
+    lowerClearance = (-1.202*descentFPM) - 1771
     
-    yy_dtc = (-572-(0.6035*(-rod*60))+bias);
-    
-    if  zt<yy_dtc:
-        TAWS = 1;
-    else:
-        TAWS = 0;
-        
-    # zdev = gsDeviation * 2 / 0.175
-    # descentFPM *= -1
-
-    # if (zdev < 0):                  # zdev_calc(zdev_calc<0) = 0; %Set to zero where less than zero
-    #     zdev = 0 
-    # radioAltitude /= 100                         #%Set to 1 greater than 1, can't bias greater than 100%
-    # if (radioAltitude > 1): 
-    #     radioAltitude = 1
-
-    # bias = -zdev / 2 * 300 * radioAltitude       # bias = -zdev_calc/2.*300.*zr_calc;
-    # yy_dtc = -572 - (0.6035 * (-descentFPM * 60)) + bias       # yy_dtc = -572-(0.6035.*(-rod*60))+ bias;
-    
-
-    # if (heightAGL < yy_dtc):    #RADIO ALTITUDE ONLY USED TO CALCULATE BIAS
-    #     TAWS = 1
-    # else: TAWS = 0;
-    
-    
+    if (radioAltitude < 2450.0) and (descentFPM > -7125): #TAWS Won't activate if radioAlt>2450ft
+        if(radioAltitude > 284.0) and (descentFPM < -1710.0): #if the upper line
+            if(radioAltitude < upperClearance): #if upperclearance line is greater, aka height AGL is less
+                TAWS = 1
+                clearance = upperClearance
+        elif(radioAltitude < 284.0) and (descentFPM < -1482.0): #if lower boundary
+            if (radioAltitude < lowerClearance):
+                TAWS = 1
+                clearance = lowerClearance
     
     if abs(airspeed-vref) <= 10 and abs(gsDeviation) <= 1 and abs(locDeviation) <= 1 and TAWS != 1:
         isStable = True    
@@ -144,39 +120,31 @@ def IsStable(vref, radioAltitude, heightAGL, airspeed,descentFPM,gsDeviation,loc
         isStable = False
     
 
-    return isStable, yy_dtc,TAWS
-    2
+    return isStable, clearance ,TAWS
+
      
 
-def TestStable(radioAltitude, heightAGL, descentFPM, gsDeviation):
-              
-    TAWS = None
-    isStable = None  #initialize variable
-    #zdev= data.G34_NAV_GS_DEVDDM_F4_1_.*2/0.175; % gs deviation, dot (0.175 DDM = 2 dot)
-    #zr = data.O34A_RALT_ALT_F4_1_ ;% radio altitude
-    #zt = data.G04_EOM_ALT_AGL_F8_1_; % height above ground
-    zdev = gsDeviation*2/0.175
+def TestStable(radioAltitude,descentFPM):
+    #FPM must be negative
+    #radioAtltude > 284 <2450 = upper Clearance
+    #radioAltitude < 284 > 10 lower Clearance ASSUMING FPM >1482
     
-    zr = radioAltitude
-    zt = heightAGL
-    rod = -descentFPM
-    zdev_calc = zdev;
+    TAWS = 0 #our default will be zero, the if statement will indicate a 1 if activated
+   # isStable = None  #initialize variable
+    upperClearance = (-0.575*descentFPM) - 1645.235
+    lowerClearance = (-1.202*descentFPM) - 1771
     
-    if zdev_calc <0:
-        zdev_calc = 0
+    if (radioAltitude < 2450.0) and (descentFPM > -7125): #TAWS Won't activate if radioAlt>2450ft
+        if(radioAltitude > 284.0) and (descentFPM < -1710.0): #if the upper line
+            if(radioAltitude < upperClearance): #if upperclearance line is greater, aka height AGL is less
+                TAWS = 1
+
+        elif(radioAltitude < 284.0) and (descentFPM < -1482.0): #if lower boundary
+            if (radioAltitude < lowerClearance):
+                TAWS = 1
+                
+            
         
-    zr_calc = zr/100; 
-    if zr_calc > 1:
-        zr_calc = 1
-        
-    bias = -zdev_calc/2 *300 *zr_calc;
-    
-    yy_dtc = (-572-(0.6035*(-rod*60))+bias)/1000;
-    
-    if  zt<yy_dtc:
-        TAWS = 1;
-    else:
-        TAWS = 0;
-        
-    return isStable, yy_dtc,TAWS,zdev_calc,bias
+    return radioAltitude,upperClearance,lowerClearance,TAWS
+    #return isStable, yy_dtc,TAWS,zdev_calc,bias
  
