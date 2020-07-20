@@ -28,28 +28,27 @@ def ImportSimData(dataDir, arrayOfVariables):
     fixedParsedData = {}
     for file in os.listdir( dataDir ) : #Loop through files in directory
         matlabFiles.append( scipy.io.loadmat( dataDir+file ) )  #Import matlab file
+        print("Found file: " + str(len(matlabFiles)))
+       
         
-        simplifiedSingleData = {"Scenario" : []} #Container to hold scenarios from each file
+    for currentFile in matlabFiles: #Loop through files
+       simplifiedSingleData = {} #Container to hold scenarios from each file
+       data = currentFile
+       print("Loading files")
+       for item in currentFile: #item refers to single scenario in the file
+                runData = {}    #temporary storage for current variable value
+                                    
+                for currentVar in arrayOfVariables: #Sort through array of variables
+                    if (item.startswith('__') != True) and (item.startswith('__version__') != True) and (item.startswith('__globals__') != True): #No headers
+                        currentVal = data[item][currentVar] 
+                        currentVal = np.concatenate(np.concatenate(np.concatenate(currentVal, axis=0)))
+                        runData[currentVar] = currentVal #Save to dictionary the current variable and it's value
+                        simplifiedSingleData[item] = pd.DataFrame(runData) #Adds scenario data into dataframe
         
-        for currentFile in matlabFiles: #Loop through files
-            print("Loading file: " + str(len(matlabFiles)))
-            data = currentFile
-            for item in currentFile: #item refers to single scenario in the file
-                    runData = {}    #temporary storage for current variable value
-                                        
-                    for currentVar in arrayOfVariables: #Sort through array of variables
-                        if (item.startswith('__') != True) and (item.startswith('__version__') != True) and (item.startswith('__globals__') != True): #No headers
-                            currentVal = data[item][currentVar] 
-                            currentVal = np.concatenate(np.concatenate(np.concatenate(currentVal, axis=0)))
-                            runData[currentVar] = currentVal #Save to dictionary the current variable and it's value
-                            simplifiedSingleData[item] = pd.DataFrame(runData) #Adds scenario data into dataframe
-            
-        fixedParsedData[file] = simplifiedSingleData #Adds single file data to larger dictionary 
+    fixedParsedData[file] = simplifiedSingleData #Adds single file data to larger dictionary 
             
     print(str(len(matlabFiles)) + " FILES LOADED SUCESSFULLY")
     return fixedParsedData
-
-
 
 def EnergyMetric(height, velocity):
     """
@@ -65,17 +64,6 @@ def EnergyMetric(height, velocity):
     energy = height + velocitySquared/(2*CONST_GRAVITY)
     
     return energy
-
-# def CalculateDescentFPM(airspeed,pitchAngle):
-#     """
-#     DESCRIPTION: Calculates aircraft FPM based on airspeed and pitchangle
-#     INPUT: Airspeed, pitch angle in degrees
-#     OUTPUT: Feet per minute of aircraft descent
-    
-#     """
-#     FPM = 0
-#     FPM = airspeed *(1/60) * 6080 * math.tan(pitchAngle)
-#     return FPM
 
 def IsStable(vref, radioAltitude, heightAGL, airspeed,descentFPM,gsDeviation,locDeviation):
     """
@@ -121,30 +109,20 @@ def IsStable(vref, radioAltitude, heightAGL, airspeed,descentFPM,gsDeviation,loc
     
 
     return isStable, clearance ,TAWS
+  
+def TrimA330Data(dic):
+    """
+     DESCRIPTION: Trims A330 data by removing duplicate values
+     INPUT: Dict containing data
+     OUTPUT: Trimmed data in dict format
+         
+    """
+    TrimmedData = {}
+    for currentSam in dic:
+        #print(dic[currentSam])
+        currentRun = dic[currentSam]
+        currentRun = currentRun.drop_duplicates(subset='G04_EOM_ALT_AGL_F8_1_', keep = 'first', inplace=False)
+        TrimmedData[currentSam] = currentRun
+    return TrimmedData
 
-     
-
-def TestStable(radioAltitude,descentFPM):
-    #FPM must be negative
-    #radioAtltude > 284 <2450 = upper Clearance
-    #radioAltitude < 284 > 10 lower Clearance ASSUMING FPM >1482
-    
-    TAWS = 0 #our default will be zero, the if statement will indicate a 1 if activated
-   # isStable = None  #initialize variable
-    upperClearance = (-0.575*descentFPM) - 1645.235
-    lowerClearance = (-1.202*descentFPM) - 1771
-    
-    if (radioAltitude < 2450.0) and (descentFPM > -7125): #TAWS Won't activate if radioAlt>2450ft
-        if(radioAltitude > 284.0) and (descentFPM < -1710.0): #if the upper line
-            if(radioAltitude < upperClearance): #if upperclearance line is greater, aka height AGL is less
-                TAWS = 1
-
-        elif(radioAltitude < 284.0) and (descentFPM < -1482.0): #if lower boundary
-            if (radioAltitude < lowerClearance):
-                TAWS = 1
-                
-            
-        
-    return radioAltitude,upperClearance,lowerClearance,TAWS
-    #return isStable, yy_dtc,TAWS,zdev_calc,bias
  

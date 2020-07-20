@@ -5,10 +5,10 @@
 
 """
 
-from module_SimDataAnalysis import ImportSimData,EnergyMetric,IsStable
+from module_SimDataAnalysis import ImportSimData,EnergyMetric,IsStable,TrimA330Data
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import IsolationForest
+#from sklearn.ensemble import IsolationForest
 #import antigravity #haha
 
 
@@ -19,7 +19,7 @@ data = ImportSimData("SimFiles/A330/",Var)
 anData = {}
 
 for currentFile in data:
-    del data[currentFile]['Scenario']
+
     for currentScen in data[currentFile]:
         print(currentScen)
        
@@ -35,18 +35,20 @@ for currentFile in data:
         TAWS_actAlt= {}
         TAWS_act = {}
         TAWS_measured = {}
-
+        
+        #.drop_duplicates(subset=None, keep=’first’, inplace=False)
+        
         #vref, radioAltitude, heightAGL, airspeed,descentFPM,gsDeviation,locDeviation
-        for currentSample in range(len(time)): #This calculates stability using IsStable function
-            stability[currentSample],TAWS_calc,TAWS_measured = IsStable(141,radioAltitude[currentSample],altitudeAGL[currentSample],velocity[currentSample],descentFPM[currentSample],gsDev[currentSample],locDev[currentSample])
-            TAWS_actAlt[currentSample] = TAWS_calc
-            TAWS_act[currentSample] = TAWS_measured
-            
+        
         for currentSample in range(len(time)): 
             energy[currentSample] = EnergyMetric(altitudeAGL[currentSample],velocity[currentSample]) #Calculate energy metric
+            stability[currentSample],TAWS_calc,TAWS_measured = IsStable(141,radioAltitude[currentSample],altitudeAGL[currentSample],velocity[currentSample],descentFPM[currentSample],gsDev[currentSample],locDev[currentSample])
+            
+            TAWS_actAlt[currentSample] = TAWS_calc
+            TAWS_act[currentSample] = TAWS_measured
+            altitudeAGL[currentSample] = altitudeAGL[currentSample].round()
             
         energy = pd.Series(energy)
-        
         slope = pd.Series(np.gradient(energy.values), energy.index, name='energy gradient')#calulate slope
         energy = pd.concat([energy.rename("energy"), slope], axis = 1) #Adds both to dataframe
         
@@ -69,8 +71,11 @@ for currentFile in data:
         locDev = locDev.to_frame()
         descentFPM = descentFPM.rename(columns = {0 : "Descent FPM"})
         
-        anData["run: " + str(currentScen)] = pd.concat([descentFPM,TAWS_actAlt,TAWS_act,altitudeAGL,velocity,gsDev,locDev,stability,energy],axis = 1)
         
+        #Dump data into a dict
+        anData["run: " + str(currentScen)] = pd.concat([time,descentFPM,TAWS_actAlt,TAWS_act,altitudeAGL,velocity,gsDev,locDev,stability,energy],axis = 1)
+        
+        #These have to be cleared for each run to rewrite them
         del stability
         del energy
         del time
@@ -83,32 +88,8 @@ for currentFile in data:
         del TAWS_act
         
 
-
-# #This is stuff for outlier detection for use later down the line
-# model = IsolationForest(n_estimators=50, max_samples='auto', contamination='auto',max_features=1.0)
-# model.fit(df[["energy gradient"]])
-# df['scores']=model.decision_function(df[['energy gradient']])
-# df['anomaly']=model.predict(df[['energy gradient']])
-
-
-# # for currentSample in range(len(df)):
-# #     if df['anomaly'][currentSample] == -1:
-# #         print("ANOMALY. REMOVING")
-# #         df = df.drop(currentSample, axis = 0)
-        
-        
-
-
-
-
-
-
-
-
-
-
-
-
+ #Now we have to trim the data based on height altitude       
+data = TrimA330Data(anData)
 
 
 
