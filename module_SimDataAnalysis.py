@@ -102,10 +102,10 @@ def IsStable(vref, radioAltitude, heightAGL, airspeed,descentFPM,gsDeviation,loc
                 clearance = lowerClearance
     
     if abs(airspeed-vref) <= 10 and abs(gsDeviation) <= 1 and abs(locDeviation) <= 1 and TAWS != 1:
-        isStable = True    
+        isStable = 1   
     
     else:
-        isStable = False
+        isStable = 0
     
 
     return isStable, clearance ,TAWS
@@ -123,6 +123,7 @@ def TrimA330Data(dic):
         currentRun = dic[currentSam]
         currentRun = currentRun.drop_duplicates(subset='G04_EOM_ALT_AGL_F8_1_', keep = 'first', inplace=False)
         TrimmedData[currentSam] = currentRun
+        
     return TrimmedData
 
  

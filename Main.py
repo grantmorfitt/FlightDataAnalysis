@@ -11,7 +11,6 @@ import pandas as pd
 #from sklearn.ensemble import IsolationForest
 #import antigravity #haha
 
-
 Var = {"G97S_DSP_YTSIMTM_F4_1_","G04_EOM_ALT_AGL_F8_1_", "G04_EOM_CAS_F8_1_", "G34_NAV_GS_DEVDDM_F4_1_","L34_NAV_LOC_DEVDDM_F4_1_","G04_EOM_VZ_F8_1_","O34A_RALT_ALT_F4_1_"}
 
 
@@ -36,7 +35,6 @@ for currentFile in data:
         TAWS_act = {}
         TAWS_measured = {}
         
-        #.drop_duplicates(subset=None, keep=’first’, inplace=False)
         
         #vref, radioAltitude, heightAGL, airspeed,descentFPM,gsDeviation,locDeviation
         
@@ -46,12 +44,14 @@ for currentFile in data:
             
             TAWS_actAlt[currentSample] = TAWS_calc
             TAWS_act[currentSample] = TAWS_measured
-            altitudeAGL[currentSample] = altitudeAGL[currentSample].round()
+            altitudeAGL[currentSample] = altitudeAGL[currentSample].round() #round the altitude numbers
             
+            
+        
         energy = pd.Series(energy)
         slope = pd.Series(np.gradient(energy.values), energy.index, name='energy gradient')#calulate slope
         energy = pd.concat([energy.rename("energy"), slope], axis = 1) #Adds both to dataframe
-        
+     
         #Formatting the datatables for input into larger dataframe    
         stability = pd.Series(stability)
         stability = stability.to_frame()
@@ -88,13 +88,57 @@ for currentFile in data:
         del TAWS_act
         
 
- #Now we have to trim the data based on height altitude       
+ #Now we have to trim the data based on altitude AGL as suggested by eugene
 data = TrimA330Data(anData)
 
 
+#Data is trimmed, we must calculate correlation between the two values 
+temp= {}
+corrMatrix = {}
+totalValue = {"Run" : []} 
+for currentSam in data:
+    #print(dic[currentSam])
+    currentRun = data[currentSam]
+    stab = currentRun["stability"]
+    ener = currentRun["energy gradient"]
+    temp = pd.concat([stab,ener], axis = 1)
+    temp = pd.DataFrame(temp,columns = ['stability', 'energy gradient'])
+    
+    corrMatrix[currentSam] = temp.corr()
+    #corrMatrix.style.background_gradient(cmap='coolwarm')
+    totalValue[currentSam] = corrMatrix[currentSam]['energy gradient']
+    totalValue[currentSam] = totalValue[currentSam][0]
+    
 
+#now we need to average the dataset, first format out the values
+data_items = totalValue.items()
+totalValue = pd.DataFrame(data_items)
+totalValue = totalValue[1]
 
+result = []
 
+#Sort out non integer values
+for itemz in totalValue:
+    if isinstance(itemz,float) == True or isinstance(itemz,int) == True:
+       # if str(itemz) == "nan":
+        #    itemz = 0.0
+        if str(itemz) != "nan":
+            result.append(itemz)
+        
+result = pd.DataFrame(result)
 
+        
 
 print("CODE DONE")
+
+
+
+
+
+
+
+
+
+
+
+
