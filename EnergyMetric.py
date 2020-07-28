@@ -8,6 +8,8 @@
 from module_SimDataAnalysis import ImportSimData,EnergyMetric,IsStable,TrimA330Data
 import numpy as np
 import pandas as pd
+import scipy.stats as scip
+import seaborn as sea
 #from sklearn.ensemble import IsolationForest
 #import antigravity #haha
 
@@ -89,45 +91,75 @@ for currentFile in data:
         
 
  #Now we have to trim the data based on altitude AGL as suggested by eugene
-data = TrimA330Data(anData)
+data = anData
 
 
 #Data is trimmed, we must calculate correlation between the two values 
 temp= {}
 corrMatrix = {}
 totalValue = {"Run" : []} 
+result = []
+tstat = None
+pval = None
+ttotal = []
+ptotal = []
+
 for currentSam in data:
     #print(dic[currentSam])
     currentRun = data[currentSam]
     stab = currentRun["stability"]
     ener = currentRun["energy gradient"]
     temp = pd.concat([stab,ener], axis = 1)
-    temp = pd.DataFrame(temp,columns = ['stability', 'energy gradient'])
+    result.append(pd.DataFrame(temp,columns = ['stability', 'energy gradient']))
     
     corrMatrix[currentSam] = temp.corr()
     #corrMatrix.style.background_gradient(cmap='coolwarm')
-    totalValue[currentSam] = corrMatrix[currentSam]['energy gradient']
-    totalValue[currentSam] = totalValue[currentSam][0]
+    #totalValue[currentSam] = corrMatrix[currentSam]['energy gradient']
+    # totalValue[currentSam] = totalValue[currentSam][0]
+    # totalValue[currentSam] = temp
     
+    # tstat, pval = scip.stats.ttest_ind(totalValue[currentSam]['stability'],totalValue[currentSam]['energy gradient'])
+    
+    # ttotal.append(tstat)
+    # ptotal.append(pval)
+    #result.append(temp)
+
 
 #now we need to average the dataset, first format out the values
-data_items = totalValue.items()
-totalValue = pd.DataFrame(data_items)
-totalValue = totalValue[1]
+# data_items = totalValue.items()
+# totalValue = pd.DataFrame(data_items)
+# totalValue = totalValue[1]
 
-result = []
+# result = []
 
-#Sort out non integer values
-for itemz in totalValue:
-    if isinstance(itemz,float) == True or isinstance(itemz,int) == True:
-       # if str(itemz) == "nan":
-        #    itemz = 0.0
-        if str(itemz) != "nan":
-            result.append(itemz)
+# #Sort out non integer values
+# for itemz in totalValue:
+#     if isinstance(itemz,float) == True or isinstance(itemz,int) == True:
+#        # if str(itemz) == "nan":
+#         #    itemz = 0.0
+#         if str(itemz) != "nan":
+#             result.append(itemz)
         
         
-result = pd.DataFrame(result)
-       
+# result = pd.DataFrame(result)
+
+stability = []
+energy = []
+for currentSample in result:
+    
+    stability.extend(currentSample['stability'])
+    energy.extend(currentSample['energy gradient'])
+    
+stability = pd.DataFrame(stability, columns = ["stability"])
+energy = pd.DataFrame(energy, columns = ["energy gradient"])
+df = pd.concat([stability,energy],axis = 1)
+
+def plot():
+ 
+    box = sea.boxplot(x = "stability", y = "energy gradient", data = df)
+    strip = sea.stripplot(x = "stability", y = "energy gradient", jitter = 0.4,linewidth = 1, data = df, ax = box)
+    
+plot()
 
 print("CODE DONE")
 
