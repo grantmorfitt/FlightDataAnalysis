@@ -73,6 +73,7 @@ for currentFile in data:
         locDev = locDev.to_frame()
         descentFPM = descentFPM.rename(columns = {0 : "Descent FPM"})
         
+       
         
         #Dump data into a dict
         anData["run: " + str(currentScen)] = pd.concat([time,descentFPM,TAWS_actAlt,TAWS_act,altitudeAGL,velocity,gsDev,locDev,stability,energy],axis = 1)
@@ -91,7 +92,7 @@ for currentFile in data:
         
 
  #Now we have to trim the data based on altitude AGL as suggested by eugene
-data = anData
+
 
 
 #Data is trimmed, we must calculate correlation between the two values 
@@ -104,15 +105,25 @@ pval = None
 ttotal = []
 ptotal = []
 
-for currentSam in data:
+for currentSam in anData:
     #print(dic[currentSam])
-    currentRun = data[currentSam]
+    
+    
+    
+    currentRun = anData[currentSam]
+    currentRun = currentRun.reset_index() #This will turn the index into a column so that we can base or samples off of it
+    
     stab = currentRun["stability"]
     ener = currentRun["energy gradient"]
-    temp = pd.concat([stab,ener], axis = 1)
-    result.append(pd.DataFrame(temp,columns = ['stability', 'energy gradient']))
+    energy = currentRun["energy"] 
+    currentTime = currentRun["index"]
+    
+    temp = pd.concat([currentTime,stab,ener,energy], axis = 1)
+   
+    result.append(pd.DataFrame(temp,columns = ['index','stability', 'energy gradient', 'energy']))
     
     corrMatrix[currentSam] = temp.corr()
+    
     #corrMatrix.style.background_gradient(cmap='coolwarm')
     #totalValue[currentSam] = corrMatrix[currentSam]['energy gradient']
     # totalValue[currentSam] = totalValue[currentSam][0]
@@ -144,23 +155,30 @@ for currentSam in data:
 # result = pd.DataFrame(result)
 
 stability = []
+energygrad = []
 energy = []
-for currentSample in result:
+timez = []
+
+for currentSample in result: #loops through samples and adds them all to 1 list
     
     stability.extend(currentSample['stability'])
-    energy.extend(currentSample['energy gradient'])
+    energygrad.extend(currentSample['energy gradient'])
+    energy.extend(currentSample['energy'])
+    timez.extend(currentSample['index'])
     
-stability = pd.DataFrame(stability, columns = ["stability"])
-energy = pd.DataFrame(energy, columns = ["energy gradient"])
-df = pd.concat([stability,energy],axis = 1)
+timez = pd.DataFrame(timez,columns = ["Time"])    
+stability = pd.DataFrame(stability, columns = ["stability"])#some fortmatting
+energygrad = pd.DataFrame(energygrad, columns = ["energy gradient"])
+energy = pd.DataFrame(energy, columns = ["energy"])
+df = pd.concat([stability,energygrad,energy,timez],axis = 1)
 
-def plot():
+# def plot(): #Plot the results
  
-    box = sea.boxplot(x = "stability", y = "energy gradient", data = df)
-    strip = sea.stripplot(x = "stability", y = "energy gradient", jitter = 0.4,linewidth = 1, data = df, ax = box)
+#     box = sea.boxplot(x = "energy", y = "energy gradient", data = df)
+#     strip = sea.stripplot(x = "energy", y = "energy gradient", data = df)
     
-plot()
-
+# plot()
+#sea.scatterplot(x = "energy", y = "energy gradient",hue = "stability",marker = "x" data = df)
 print("CODE DONE")
 
 
