@@ -57,7 +57,7 @@ for currentFile in data:
         for currentSample in range(len(time)): #Check if on approach path
                appPath.append(OnApproachPath(gsDev[currentSample], locDev[currentSample], velocity[currentSample], 141))
              
-        
+        #Blah blah formatting
         altitudeAGL = altitudeAGL.to_frame()
         velocity = velocity.to_frame()
         gsDev = gsDev.to_frame()
@@ -66,26 +66,23 @@ for currentFile in data:
         appPath = pd.Series(appPath,name = "On Approach Path")
         
         change = 0
+        anData[currentScen] = pd.concat([time,altitudeAGL,velocity,gsDev,locDev,appPath, onGround],axis = 1)
         
-        for i in range(len(onGround)):        
-           if i != 0:
-                  tempA = s.iloc[i]
-                  tempB = s.iloc[i-1]
-                  diff =  tempA - tempB
-                  if diff[0] != 0:
-                      change += 1
+        for currentSample in range(len(time)):    
+            if onGround.iloc[currentSample][0] == -1: #This will be used to filter out onground data
+                anData[currentScen].drop(currentSample,inplace = True)
+                if currentSample !=0: #Make sure we aren't indexing zero..causes exception 
+                    tempA = appPath.iloc[currentSample] 
+                    tempB = appPath.iloc[currentSample-1]
+                    diff =  tempA - tempB 
+                    if diff != 0: #If there is a difference
+                      change += 1 #Add 1 to the change count
                       del diff
                       del tempA
                       del tempB
-                
-        anData[currentScen] = pd.concat([time,altitudeAGL,velocity,gsDev,locDev,appPath, onGround],axis = 1)
-        numberOnOffApproach[str(currentFile) + "_" + currentScen] = change
         
-        #Trim out data that is on the ground.
-        for currentSample in range(len(time)):    
-            if onGround.iloc[currentSample][0] == -1:
-                anData[currentScen].drop(currentSample,inplace = True)
-                
+        numberOnOffApproach[currentFile, currentScen] = change #Add the change to the number of changes in the appraoch
+        
         #These have to be cleared for each run to rewrite them
         del currentSample    
         del time
@@ -95,29 +92,12 @@ for currentFile in data:
         del altitudeAGL
         trimmedData[currentFile] = anData
 
-totalChange = 0
 
-# for i in enumerate(s):
-#    if i in s:
-#         if s[i-1] != s[i]:
-#             totalChange += 1
-s = onGround      
+tabletData = pd.read_csv("Experiment 1 Data/experiment1_tablet_data.csv")
 
-# for i in range(len(s)):
-      
-#     if i != 0:
-#           tempA = s.iloc[i]
-#           tempB = s.iloc[i-1]
-#           diff =  tempA - tempB
-#           if diff[0] != 0:
-#               totalChange += 1
-#               del diff
-#               del tempA
-#               del tempB
-    
-# Printing the length of list which is ultimately the total no. of change
-print(len(c))
-
+for i in range(len(tabletData)):
+    if tabletData["role"][i] == "Pilot Monitoring":
+        tabletData["role"].drop(i,inplace = True)
 
               
 
